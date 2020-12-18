@@ -1,0 +1,100 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <AssemblyName>ClampFloorplanCropRegion</AssemblyName>
+    <OutputType>Library</OutputType>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <OutputPath>./build</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <Optimize>false</Optimize>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>x64</PlatformTarget>
+    <DebugType>portable</DebugType>
+    <Optimize>true</Optimize>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+
+    <Compile Include="*.cs"/>
+    <Compile Include="./libs/*.cs"/>
+    <Compile Include="../common_build_source/*.cs"/>
+
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="RevitAPI">
+      <HintPath>.\refs\RevitAPI.dll</HintPath>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>.\refs\RevitAPIUI.dll</HintPath>
+    </Reference>
+    <Reference Include="EPPLUS">
+      <HintPath>.\refs\EPPlus.dll</HintPath>
+    </Reference>
+
+    <Reference Include="System"/>
+    <Reference Include="System.Windows.Forms"/>
+    <Reference Include="System.Drawing"/>
+    <Reference Include="System.Runtime.Serialization"/>
+    <Reference Include="System.Runtime.Serialization.Json"/>
+    <Reference Include="System.Xaml"/>
+    <Reference Include="System.Xml"/>
+    <Reference Include="WindowsBase"/>
+    <Reference Include="PresentationCore"/>
+    <Reference Include="PresentationFramework"/>
+    <Reference Include="./packages/System.Windows.Interactivity.WPF.2.0.20525/lib/net40/System.Windows.Interactivity.dll"/>
+
+  </ItemGroup>
+
+  <Target Name="ILMerge">
+    <!-- Outputs="$(IntermediateOutputPath)$(TargetFileName)" -->
+    <!-- Outputs="$(TargetPath)" -->
+    <Message Text="Performing the Ilmerge." />
+    <!-- in this CreateItem stanza, we collect all the DLLs for the referenced projects -->
+    <ItemGroup>
+      <_MergeItem Include="build/EPPLus.dll" />
+      <_MergeItem Include="build/$(AssemblyName).dll" />
+    </ItemGroup>
+
+    <CreateItem Include="build/$(AssemblyName).dll">
+      <Output TaskParameter="Include" ItemName="AssembliesToMerge" />
+    </CreateItem>
+
+    <CreateItem Include="build/EPPLus.dll">
+      <Output TaskParameter="Include" ItemName="AssembliesToMerge" />
+    </CreateItem>
+
+
+    <!-- This weird bit of hieroglyphics is the assemblies to merge, quoted, and separated by spaces -->
+    <!-- Example:  "c:\foo\project1\bin\Debug\ProjectOne.dll"   "c:\foo\project2\bin\Debug\ProjectTwo.dll"  -->
+    <Message Text="AssembliesToMerge= @(AssembliesToMerge -> '&quot;%(Fullpath)&quot;', ' ')" />
+    <!-- Message Text="TargetPath= $(TargetPath)" / -->
+    <Message Text="TargetFileName= $(TargetFileName)" />
+    <!-- produce the merged assembly - putting the output in the "IntermediateOutputPath" eg obj\Debug. -->
+    <!-- it will be copied later by the CopyFilestoOutputDirectory task defined in Microsoft.Common.Targets -->
+
+    <Error
+      Text="ILMerge cannot be found. You need to download and install ILMerge in order to build DotNetZip."
+      Condition="!Exists('packages\ILRepack.2.0.18\tools\ILRepack.exe')" />
+
+    <Exec Command="packages\ILRepack.2.0.18\tools\ILRepack.exe /lib:build /xmldocs /out:build/merge/$(TargetFileName)  @(AssembliesToMerge -> '%(Fullpath)', ' ') " />
+
+    <!-- for some reason the XML doc file does not get copied automatically from obj\Debug to bin\Debug. -->
+    <!-- we do it here explicitly. -->
+    <ItemGroup>
+      <_CopyItems Include="build\merge\*.*" />
+      <_CopyItems Include="build\RevitAPI*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_CopyItems)" DestinationFolder="C:\ProgramData\Autodesk\Revit\Addins\MarathonScripts\ClampFloorplanCropRegion" SkipUnchangedFiles="true" OverwriteReadOnlyFiles="$(OverwriteReadOnlyFiles)" />
+  </Target>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets"/>
+</Project>

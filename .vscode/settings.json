@@ -1,0 +1,6 @@
+{
+	"files.watcherExclude": {
+		"**/*.g.i.cs": true,
+	}
+
+}
